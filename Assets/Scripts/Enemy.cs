@@ -11,7 +11,7 @@ public class Enemy : MonoBehaviour
     [Header("Detection and attack")]
     public float detectRange = 5f;
     public float loseRange = 8f;          // gives up the chase beyond this distance
-    public float attackRange = 0.9f;
+    public float attackRange = 1.4f;
     public int damage = 1;
     public float attackCooldown = 1f;
 
