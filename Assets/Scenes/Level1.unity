@@ -1952,6 +1952,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ae789856bec34d77ae570bd41dd45d4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
+  nextLevelName: 
+  isFirstLevel: 1
 --- !u!4 &1683972270
 Transform:
   m_ObjectHideFlags: 0

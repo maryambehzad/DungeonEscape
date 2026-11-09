@@ -1,22 +1,23 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// Put on an empty GameObject called "GameManager".
-// Draws the HUD and the YOU DIED / DUNGEON ESCAPED! screens (placeholder UI, no Canvas needed).
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
+    public string nextLevelName = "";
+    public bool isFirstLevel = false;
 
-    enum State { Playing, Won, Lost }
-    State state = State.Playing;
-
-    PlayerController player;
-    Health playerHealth;
-
+    static int score;
+    static float totalTime;
+    int scoreAtStart;
+    float timeAtStart;
+    int lastKeys;
+    bool won;
+    bool lost;
     string message = "";
     float messageUntil;
-
-    GUIStyle hudStyle, bigStyle, buttonStyle, msgStyle;
+    PlayerController player;
+    Health playerHealth;
 
     void Awake()
     {
@@ -26,26 +27,51 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        var p = GameObject.FindGameObjectWithTag("Player");
-        if (p != null)
+        if (isFirstLevel)
         {
-            player = p.GetComponent<PlayerController>();
-            playerHealth = p.GetComponent<Health>();
-            if (playerHealth != null) playerHealth.onDeath.AddListener(Lose);
+            score = 0;
+            totalTime = 0;
         }
+        scoreAtStart = score;
+        timeAtStart = totalTime;
+
+        GameObject p = GameObject.FindGameObjectWithTag("Player");
+        player = p.GetComponent<PlayerController>();
+        playerHealth = p.GetComponent<Health>();
+        playerHealth.onDeath.AddListener(Lose);
+
+        Enemy[] enemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+        foreach (Enemy e in enemies)
+        {
+            e.GetComponent<Health>().onDeath.AddListener(EnemyKilled);
+        }
+    }
+
+    void Update()
+    {
+        if (won || lost) return;
+        totalTime += Time.deltaTime;
+        if (player.keys > lastKeys)
+        {
+            score += 50;
+        }
+        lastKeys = player.keys;
+    }
+
+    void EnemyKilled()
+    {
+        score += 10;
     }
 
     public void Win()
     {
-        if (state != State.Playing) return;
-        state = State.Won;
+        won = true;
         Time.timeScale = 0f;
     }
 
     public void Lose()
     {
-        if (state != State.Playing) return;
-        state = State.Lost;
+        lost = true;
         Time.timeScale = 0f;
     }
 
@@ -55,55 +81,82 @@ public class GameManager : MonoBehaviour
         messageUntil = Time.unscaledTime + 2f;
     }
 
-    void MakeStyles()
+    string TimeText()
     {
-        if (hudStyle != null) return;
-
-        hudStyle = new GUIStyle(GUI.skin.label) { fontSize = 26, fontStyle = FontStyle.Bold };
-        hudStyle.normal.textColor = Color.white;
-
-        msgStyle = new GUIStyle(GUI.skin.label) { fontSize = 26, alignment = TextAnchor.MiddleCenter };
-        msgStyle.normal.textColor = Color.yellow;
-
-        bigStyle = new GUIStyle(GUI.skin.label) { fontSize = 64, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-        bigStyle.normal.textColor = Color.white;
-
-        buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = 28 };
+        int minutes = (int)(totalTime / 60);
+        int seconds = (int)(totalTime % 60);
+        return minutes + ":" + seconds.ToString("00");
     }
 
     void OnGUI()
     {
-        MakeStyles();
         float w = Screen.width;
         float h = Screen.height;
+        GUI.skin.label.fontSize = 26;
+        GUI.skin.button.fontSize = 28;
 
-        // HUD
-        if (player != null && playerHealth != null)
+        GUI.skin.label.alignment = TextAnchor.UpperLeft;
+        GUI.Label(new Rect(20, 15, 500, 40), "Health: " + playerHealth.Current + " / " + playerHealth.maxHealth);
+        GUI.Label(new Rect(20, 55, 500, 40), "Keys: " + player.keys);
+        GUI.Label(new Rect(20, 95, w - 40, 40), "Objective: find the key, unlock the door, reach the exit");
+
+        GUI.skin.label.alignment = TextAnchor.UpperRight;
+        GUI.Label(new Rect(w - 320, 15, 300, 40), "Score: " + score);
+        GUI.Label(new Rect(w - 320, 55, 300, 40), "Time: " + TimeText());
+
+        GUI.skin.label.alignment = TextAnchor.MiddleCenter;
+        if (Time.unscaledTime < messageUntil)
         {
-            GUI.Label(new Rect(20, 15, 500, 40), "Health: " + playerHealth.Current + " / " + playerHealth.maxHealth, hudStyle);
-            GUI.Label(new Rect(20, 55, 500, 40), "Keys: " + player.keys, hudStyle);
-            GUI.Label(new Rect(20, 95, 700, 40), "Objective: find the key, unlock the door, reach the exit", hudStyle);
+            GUI.contentColor = Color.yellow;
+            GUI.Label(new Rect(0, h - 100, w, 50), message);
+            GUI.contentColor = Color.white;
         }
 
-        // Temporary message
-        if (Time.unscaledTime < messageUntil)
-            GUI.Label(new Rect(0, h - 100, w, 50), message, msgStyle);
-
-        // End screens
-        if (state != State.Playing)
+        if (won || lost)
         {
-            Color old = GUI.color;
             GUI.color = new Color(0, 0, 0, 0.7f);
             GUI.DrawTexture(new Rect(0, 0, w, h), Texture2D.whiteTexture);
-            GUI.color = old;
+            GUI.color = Color.white;
 
-            string title = (state == State.Won) ? "DUNGEON ESCAPED!" : "YOU DIED";
-            GUI.Label(new Rect(0, h / 2 - 120, w, 100), title, bigStyle);
+            string title = "YOU DIED";
+            string buttonText = "Restart";
+            if (won && nextLevelName != "")
+            {
+                title = "LEVEL COMPLETE!";
+                buttonText = "Next Level";
+            }
+            else if (won)
+            {
+                title = "DUNGEON ESCAPED!";
+                buttonText = "Main Menu";
+            }
 
-            if (GUI.Button(new Rect(w / 2 - 130, h / 2 + 10, 260, 60), "Restart", buttonStyle))
+            GUI.skin.label.fontSize = 64;
+            GUI.Label(new Rect(0, h / 2 - 160, w, 100), title);
+            GUI.skin.label.fontSize = 26;
+
+            if (won)
+            {
+                GUI.Label(new Rect(0, h / 2 - 60, w, 50), "Score: " + score + "     Time: " + TimeText());
+            }
+
+            if (GUI.Button(new Rect(w / 2 - 130, h / 2 + 10, 260, 60), buttonText))
             {
                 Time.timeScale = 1f;
-                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+                if (lost)
+                {
+                    score = scoreAtStart;
+                    totalTime = timeAtStart;
+                    SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+                }
+                else if (nextLevelName != "")
+                {
+                    SceneManager.LoadScene(nextLevelName);
+                }
+                else
+                {
+                    SceneManager.LoadScene("MainMenu");
+                }
             }
         }
     }
