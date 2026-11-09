@@ -1159,7 +1159,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 27d74c20cdf1540c5bcb5d9fb92817a0, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ec7a329992c8442d8baa06adc9a458cc, type: 3}
   m_Color: {r: 0.93961376, g: 0.9454302, b: 0.9716981, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -1952,7 +1952,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ae789856bec34d77ae570bd41dd45d4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  nextLevelName: 
+  nextLevelName: Level2
   isFirstLevel: 1
 --- !u!4 &1683972270
 Transform:
