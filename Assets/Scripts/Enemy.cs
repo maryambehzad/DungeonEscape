@@ -1,100 +1,104 @@
 using UnityEngine;
 
-// Enemy needs: Rigidbody2D (Gravity Scale 0, Freeze Rotation Z), a Collider2D, Health, layer "Enemy".
 public class Enemy : MonoBehaviour
 {
-    [Header("Movement")]
     public float patrolSpeed = 1.5f;
-    public float chaseSpeed = 3f;
-    public float patrolDistance = 3f;     // how far left and right of the start point it walks
+    public float approachSpeed = 1.5f;
+    public float patrolDistance = 3f;
+    public float detectRange = 6f;
+    public float loseRange = 9f;
+    public float stopDistance = 3f;
+    public float shootCooldown = 1.5f;
 
-    [Header("Detection and attack")]
-    public float detectRange = 5f;
-    public float loseRange = 8f;          // gives up the chase beyond this distance
-    public float attackRange = 1.4f;
-    public int damage = 1;
-    public float attackCooldown = 1f;
-
-    Rigidbody2D rb;
-    Transform player;
-    Vector2 leftPoint, rightPoint, patrolTarget;
-    bool chasing;
-    float lastAttackTime = -999f;
-
-    void Awake()
-    {
-        rb = GetComponent<Rigidbody2D>();
-        var h = GetComponent<Health>();
-        if (h != null) h.onDeath.AddListener(Die);
-    }
+    private Rigidbody2D rb;
+    private Transform player;
+    private GameObject enemyArrow;
+    private float startX;
+    private float direction = 1f;
+    private float shootTimer = 1f;
+    private bool chasing = false;
 
     void Start()
     {
-        var p = GameObject.FindGameObjectWithTag("Player");
-        if (p != null) player = p.transform;
+        rb = GetComponent<Rigidbody2D>();
+        startX = transform.position.x;
+        enemyArrow = Resources.Load<GameObject>("EnemyArrow");
 
-        Vector2 start = transform.position;
-        leftPoint = start + Vector2.left * patrolDistance;
-        rightPoint = start + Vector2.right * patrolDistance;
-        patrolTarget = rightPoint;
+        GameObject p = GameObject.FindGameObjectWithTag("Player");
+        if (p != null)
+        {
+            player = p.transform;
+        }
+
+        GetComponent<Health>().onDeath.AddListener(Die);
+    }
+
+    void Update()
+    {
+        if (player == null) return;
+
+        float distance = Vector2.Distance(transform.position, player.position);
+
+        if (distance < detectRange) chasing = true;
+        if (distance > loseRange) chasing = false;
+
+        shootTimer -= Time.deltaTime;
+        if (chasing && shootTimer <= 0f)
+        {
+            Shoot();
+            shootTimer = shootCooldown;
+        }
     }
 
     void FixedUpdate()
     {
-        if (player == null) { rb.linearVelocity = Vector2.zero; return; }
-
-        float dist = Vector2.Distance(transform.position, player.position);
-
-        if (!chasing && dist <= detectRange) chasing = true;
-        else if (chasing && dist > loseRange) chasing = false;
+        if (player == null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
 
         if (chasing)
         {
-            if (dist <= attackRange)
+            float distance = Vector2.Distance(transform.position, player.position);
+            if (distance > stopDistance)
             {
-                rb.linearVelocity = Vector2.zero;
-                TryAttack();
+                Vector2 toPlayer = (player.position - transform.position).normalized;
+                rb.linearVelocity = toPlayer * approachSpeed;
             }
             else
             {
-                MoveToward(player.position, chaseSpeed);
+                rb.linearVelocity = Vector2.zero;
             }
         }
         else
         {
-            Patrol();
+            if (transform.position.x > startX + patrolDistance) direction = -1f;
+            if (transform.position.x < startX - patrolDistance) direction = 1f;
+            rb.linearVelocity = new Vector2(direction * patrolSpeed, 0f);
         }
     }
 
-    void Patrol()
+    void OnCollisionEnter2D(Collision2D other)
     {
-        MoveToward(patrolTarget, patrolSpeed);
-        if (Vector2.Distance(transform.position, patrolTarget) < 0.2f)
-            patrolTarget = (patrolTarget == rightPoint) ? leftPoint : rightPoint;
+        if (!chasing)
+        {
+            direction = -direction;
+        }
     }
 
-    void MoveToward(Vector2 target, float speed)
+    void Shoot()
     {
-        Vector2 dir = (target - (Vector2)transform.position).normalized;
-        rb.linearVelocity = dir * speed;
-    }
+        if (enemyArrow == null) return;
 
-    void TryAttack()
-    {
-        if (Time.time < lastAttackTime + attackCooldown) return;
-        lastAttackTime = Time.time;
-        var h = player.GetComponent<Health>();
-        if (h != null) h.TakeDamage(damage);
+        Vector2 aimDir = (player.position - transform.position).normalized;
+        Vector3 spawnPos = transform.position + (Vector3)(aimDir * 0.8f);
+        GameObject arrow = Instantiate(enemyArrow, spawnPos, Quaternion.identity);
+        arrow.GetComponent<Arrow>().Shoot(aimDir);
     }
 
     void Die()
     {
         Destroy(gameObject);
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, detectRange);
     }
 }

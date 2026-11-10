@@ -23,6 +23,7 @@ public class GameManager : MonoBehaviour
     {
         Instance = this;
         Time.timeScale = 1f;
+        TutorialHints.hintText = "";
     }
 
     void Start()
@@ -96,12 +97,25 @@ public class GameManager : MonoBehaviour
         GUI.skin.button.fontSize = 28;
 
         GUI.skin.label.alignment = TextAnchor.UpperLeft;
+
+        GUI.contentColor = new Color(1f, 0.4f, 0.4f);
         GUI.Label(new Rect(20, 15, 500, 40), "Health: " + playerHealth.Current + " / " + playerHealth.maxHealth);
+
+        GUI.contentColor = new Color(1f, 0.8f, 0.2f);
         GUI.Label(new Rect(20, 55, 500, 40), "Keys: " + player.keys);
-        GUI.Label(new Rect(20, 95, w - 40, 40), "Objective: find the key, unlock the door, reach the exit");
+
+        if (TutorialHints.hintText != "")
+        {
+            GUI.contentColor = Color.cyan;
+            GUI.Label(new Rect(20, 95, w - 40, 40), TutorialHints.hintText);
+        }
 
         GUI.skin.label.alignment = TextAnchor.UpperRight;
+
+        GUI.contentColor = new Color(0.6f, 1f, 0.6f);
         GUI.Label(new Rect(w - 320, 15, 300, 40), "Score: " + score);
+
+        GUI.contentColor = Color.white;
         GUI.Label(new Rect(w - 320, 55, 300, 40), "Time: " + TimeText());
 
         GUI.skin.label.alignment = TextAnchor.MiddleCenter;
@@ -109,8 +123,9 @@ public class GameManager : MonoBehaviour
         {
             GUI.contentColor = Color.yellow;
             GUI.Label(new Rect(0, h - 100, w, 50), message);
-            GUI.contentColor = Color.white;
         }
+
+        GUI.contentColor = Color.white;
 
         if (won || lost)
         {
