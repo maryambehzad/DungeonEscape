@@ -12,6 +12,7 @@ public class GameManager : MonoBehaviour
     int scoreAtStart;
     float timeAtStart;
     int lastKeys;
+    float lastHealth;
     bool won;
     bool lost;
     string message = "";
@@ -40,6 +41,7 @@ public class GameManager : MonoBehaviour
         player = p.GetComponent<PlayerController>();
         playerHealth = p.GetComponent<Health>();
         playerHealth.onDeath.AddListener(Lose);
+        lastHealth = playerHealth.Current;
 
         Enemy[] enemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
         foreach (Enemy e in enemies)
@@ -52,27 +54,44 @@ public class GameManager : MonoBehaviour
     {
         if (won || lost) return;
         totalTime += Time.deltaTime;
+
         if (player.keys > lastKeys)
         {
             score += 50;
+            SoundManager.Play("key");
+        }
+        if (player.keys < lastKeys)
+        {
+            SoundManager.Play("door");
         }
         lastKeys = player.keys;
+
+        if (playerHealth.Current < lastHealth)
+        {
+            SoundManager.Play("hit", 0.8f);
+        }
+        lastHealth = playerHealth.Current;
     }
 
     void EnemyKilled()
     {
         score += 10;
+        SoundManager.Play("hit");
     }
 
     public void Win()
     {
+        if (won || lost) return;
         won = true;
+        SoundManager.Play("win");
         Time.timeScale = 0f;
     }
 
     public void Lose()
     {
+        if (won || lost) return;
         lost = true;
+        SoundManager.Play("lose");
         Time.timeScale = 0f;
     }
 

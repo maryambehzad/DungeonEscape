@@ -28,6 +28,8 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        if (Time.timeScale == 0f) return;
+
         moveInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
 
         Vector2 mouseWorld = cam.ScreenToWorldPoint(Input.mousePosition);
@@ -51,6 +53,7 @@ public class PlayerController : MonoBehaviour
     void Shoot()
     {
         lastShootTime = Time.time;
+        SoundManager.Play("shoot", 0.6f);
         Vector3 spawnPos = transform.position + (Vector3)(aimDir * 0.6f);
         GameObject arrow = Instantiate(arrowPrefab, spawnPos, Quaternion.identity);
         arrow.GetComponent<Arrow>().Shoot(aimDir);
